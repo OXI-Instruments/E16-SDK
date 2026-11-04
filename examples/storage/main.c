@@ -4,6 +4,9 @@
  * green when saved. Save only when the user asks for it, never automatically
  * or on a timer: each flash sector survives a limited number of erases.
  *
+ * If the flash's erase limit (storage.h) refuses a save, the dots flash red
+ * and the positions stay unsaved until Shift is pressed again.
+ *
  * Uses the last 4 KB sector of the flash. The official firmware also keeps
  * its data in this flash.
  */
@@ -36,10 +39,13 @@ static void load(saved_t *s)
     }
 }
 
-static void save(const saved_t *s)
+static bool save(const saved_t *s)
 {
-    storage_erase(save_addr, sizeof(*s));
+    if (!storage_erase(save_addr, sizeof(*s))) {
+        return false;
+    }
     storage_write(save_addr, s, sizeof(*s));
+    return true;
 }
 
 int main(void)
@@ -61,6 +67,7 @@ int main(void)
     load(&state);
 
     uint32_t saved_at = 0;
+    bool save_failed = false;
     bool unsaved = false;
     bool shift_was_pressed = false;
 
@@ -77,8 +84,8 @@ int main(void)
 
         bool shift = enc_shift_pressed();
         if (shift && !shift_was_pressed && unsaved) {
-            save(&state);
-            unsaved = false;
+            save_failed = !save(&state);
+            unsaved = save_failed;
             saved_at = now;
         }
         shift_was_pressed = shift;
@@ -86,7 +93,9 @@ int main(void)
         bool flash = saved_at != 0 && now - saved_at < SAVED_FLASH_MS;
         leds_clear();
         for (int i = 0; i < ENC_COUNT; i++) {
-            if (flash) {
+            if (flash && save_failed) {
+                leds_set(i, state.position[i], LEVEL, 0, 0);
+            } else if (flash) {
                 leds_set(i, state.position[i], 0, LEVEL, 0);
             } else {
                 leds_set(i, state.position[i], 0, LEVEL, LEVEL);

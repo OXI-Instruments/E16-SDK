@@ -23,6 +23,9 @@ you write for the E16.
   entry. No automatic saving: not on a timer, not a few seconds after the
   last change, not on every edit. Each sector survives about 100,000
   erases.
+- storage_erase() refuses to erase too often (STORAGE_ERASE_BURST,
+  STORAGE_ERASE_INTERVAL_MS) and returns false. Check it, keep the data in
+  RAM and don't write to a sector whose erase was refused.
 - Never put a USB drive (examples/usb_disk) on the flash: the computer
   writes to a mounted drive on its own.
 

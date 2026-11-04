@@ -12,7 +12,8 @@ always go back to the official firmware through bootloader mode.
   can only be repaired with a debug probe.
 - **Excessive writing to the external flash (`storage.h`) can damage it,
   and it holds your data from the official firmware.** Only write when the
-  user asks for it, e.g. by saving, never automatically or on a timer.
+  user asks for it, e.g. by saving, never automatically or on a timer. The
+  SDK refuses erases that come too often.
 - **Only install Bluetooth firmware with the SDK's own tools.** The Bluetooth
   chip's bootloader overwrites itself if the firmware it receives is too big,
   and the SDK's tools refuse such files.

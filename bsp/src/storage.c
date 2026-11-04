@@ -19,6 +19,33 @@
 static SPI_HandleTypeDef spi;
 static uint32_t size;
 
+/*
+ * The erase limit (storage.h): a budget, counted in milliseconds, that
+ * refills by STORAGE_ERASE_INTERVAL_MS per sector up to
+ * STORAGE_ERASE_BURST sectors. It starts full.
+ */
+#define ERASE_BUDGET_MAX_MS (STORAGE_ERASE_BURST * STORAGE_ERASE_INTERVAL_MS)
+
+static uint32_t erase_budget_ms = ERASE_BUDGET_MAX_MS;
+static uint32_t erase_budget_at;
+
+static bool erase_allowed(uint32_t sectors)
+{
+    uint32_t now = system_millis();
+    uint32_t elapsed = now - erase_budget_at;
+    erase_budget_at = now;
+    if (elapsed > ERASE_BUDGET_MAX_MS - erase_budget_ms) {
+        erase_budget_ms = ERASE_BUDGET_MAX_MS;
+    } else {
+        erase_budget_ms += elapsed;
+    }
+    if (sectors > erase_budget_ms / STORAGE_ERASE_INTERVAL_MS) {
+        return false;
+    }
+    erase_budget_ms -= sectors * STORAGE_ERASE_INTERVAL_MS;
+    return true;
+}
+
 static void cs_low(void)
 {
     HAL_GPIO_WritePin(STORAGE_CS_PORT, STORAGE_CS_PIN, GPIO_PIN_RESET);
@@ -166,13 +193,19 @@ void storage_write(uint32_t addr, const void *data, size_t len)
     }
 }
 
-void storage_erase(uint32_t addr, size_t len)
+bool storage_erase(uint32_t addr, size_t len)
 {
     if (len == 0) {
-        return;
+        return true;
+    }
+    if (addr >= size || len > size - addr) {
+        return false;
     }
     uint32_t first = addr / STORAGE_SECTOR_SIZE;
     uint32_t last = (uint32_t)((addr + len - 1) / STORAGE_SECTOR_SIZE);
+    if (!erase_allowed(last - first + 1)) {
+        return false;
+    }
     for (uint32_t sector = first; sector <= last; sector++) {
         command(CMD_WRITE_ENABLE);
         cs_low();
@@ -180,4 +213,5 @@ void storage_erase(uint32_t addr, size_t len)
         cs_high();
         wait_ready();
     }
+    return true;
 }

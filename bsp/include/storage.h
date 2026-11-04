@@ -19,9 +19,17 @@
  * ("save a few seconds after the last change"): every change then costs an
  * erase, without the user ever asking for one.
  *
+ * To protect the flash from code that erases it in a loop, storage_erase()
+ * erases at most STORAGE_ERASE_BURST sectors in a row, then one more every
+ * STORAGE_ERASE_INTERVAL_MS. A firmware that saves when the user asks never
+ * notices; one that erases too often gets false back.
+ *
  * The official firmware keeps its own data in this flash. Writing here can
  * overwrite it.
  */
+
+#define STORAGE_ERASE_BURST         32
+#define STORAGE_ERASE_INTERVAL_MS   15000u
 
 /* Returns false if no flash chip answers. */
 bool storage_init(void);
@@ -36,8 +44,10 @@ void storage_write(uint32_t addr, const void *data, size_t len);
 
 /*
  * Erase every 4 KB sector that addr .. addr + len - 1 touches, including the
- * parts of those sectors outside the range. About 15 ms per sector.
+ * parts of those sectors outside the range. About 15 ms per sector. Returns
+ * false, erasing nothing, if the range goes past the end of the flash or
+ * would exceed the erase limit; try again later.
  */
-void storage_erase(uint32_t addr, size_t len);
+bool storage_erase(uint32_t addr, size_t len);
 
 #endif
