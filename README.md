@@ -10,12 +10,15 @@ always go back to the official firmware through bootloader mode.
 - **Writing to the processor's internal flash is strongly discouraged.** It
   holds the bootloader, and a firmware that overwrites it leaves an E16 that
   can only be repaired with a debug probe.
-- **Excessive writing to the external flash (`storage.h`) can damage it.**
-  Only write when the user asks for it, e.g. by saving, never automatically
-  or on a timer.
+- **Excessive writing to the external flash (`storage.h`) can damage it,
+  and it holds your data from the official firmware.** Only write when the
+  user asks for it, e.g. by saving, never automatically or on a timer.
 - **Only install Bluetooth firmware with the SDK's own tools.** The Bluetooth
   chip's bootloader overwrites itself if the firmware it receives is too big,
   and the SDK's tools refuse such files.
+
+If you use an AI coding assistant, it finds these rules in
+[AGENTS.md](AGENTS.md).
 
 Write your own firmware for the [OXI E16](https://oxiinstruments.com) MIDI controller.
 

@@ -15,7 +15,9 @@
  * Like all NOR flash, writing can only turn 1 bits into 0 bits: erase a sector
  * (all bytes become 0xFF) before writing to it again. Each sector survives
  * about 100,000 erases, so only write when the user asks for it, e.g. by
- * saving, never automatically or on a timer.
+ * saving, never automatically or on a timer. That includes delayed saves
+ * ("save a few seconds after the last change"): every change then costs an
+ * erase, without the user ever asking for one.
  *
  * The official firmware keeps its own data in this flash. Writing here can
  * overwrite it.
