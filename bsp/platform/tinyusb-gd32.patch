@@ -1,0 +1,42 @@
+--- a/dwc2_common.c
++++ b/dwc2_common.c
+@@ -170,8 +170,9 @@
+ #endif
+ 
+   // For some reason: GD32VF103 gsnpsid and all hwcfg register are always zero (skip it)
++  // E16: so are the GD32F405's, which builds as STM32F4.
+   (void)dwc2;
+-#if !TU_CHECK_MCU(OPT_MCU_GD32VF103)
++#if 0
+   enum { GSNPSID_ID_MASK = TU_GENMASK(31, 16) };
+   const uint32_t gsnpsid = dwc2->gsnpsid & GSNPSID_ID_MASK;
+   TU_ASSERT(gsnpsid == DWC2_OTG_ID || gsnpsid == DWC2_FS_IOT_ID || gsnpsid == DWC2_HS_IOT_ID);
+--- a/dcd_dwc2.c
++++ b/dcd_dwc2.c
+@@ -87,9 +87,9 @@
+ static tud_configure_dwc2_t _tud_cfg = CFG_TUD_CONFIGURE_DWC2_DEFAULT;
+ 
+ TU_ATTR_ALWAYS_INLINE static inline uint8_t dwc2_ep_count(const dwc2_regs_t* dwc2) {
+-  #if TU_CHECK_MCU(OPT_MCU_GD32VF103)
++  #if 1 // E16: the GD32F405's ghwcfg2 reads zero; its FS core has 4 endpoints
+   (void) dwc2;
+-  return DWC2_EP_MAX;
++  return EP_MAX_FS;
+   #else
+   const dwc2_ghwcfg2_t ghwcfg2 = {.value = dwc2->ghwcfg2};
+   return ghwcfg2.num_dev_ep + 1;
+@@ -241,9 +241,14 @@
+     // Both TXFD and TXSA are in unit of 32-bit words.
+     if (epnum == 0) {
+       dwc2->dieptxf0 = ((uint32_t) fifo_size << DIEPTXF0_TX0FD_Pos) | _dcd_data.dfifo_top;
++      // E16: the GD32F405 applies a new TX FIFO size to its free-space count
++      // (DTXFSTS) only on a flush. Without it the count keeps the reset size of
++      // 512 words, runs down as packets are written, and the endpoint stalls.
++      dfifo_flush_tx(dwc2, epnum);
+     } else {
+       // DIEPTXF starts at FIFO #1.
+       dwc2->dieptxf[epnum - 1] = ((uint32_t) fifo_size << DIEPTXF_INEPTXFD_Pos) | _dcd_data.dfifo_top;
++      dfifo_flush_tx(dwc2, epnum); // E16: see above
+     }
+   }
+ 

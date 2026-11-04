@@ -1,0 +1,12 @@
+build/
+*.elf
+*.bin
+*.hex
+*.map
+*.syx
+.DS_Store
+.vscode/
+.idea/
+.venv/
+__pycache__/
+examples/ble_midi/nrf/_build/
